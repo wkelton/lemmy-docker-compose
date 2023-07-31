@@ -1,0 +1,120 @@
+version: "3.7"
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "50m"
+    max-file: "4"
+
+services:
+  lemmy-proxy:
+    image: nginxinc/nginx-unprivileged:1-alpine
+    container_name: lemmy-proxy
+    restart: unless-stopped
+    volumes:
+      - proxy_config:/config
+    command: nginx -g "daemon off;" -c /config/nginx.conf
+    networks:
+      - local
+      - reverse_proxy
+    depends_on:
+      - lemmy-ui
+      - lemmy-proxy-volume-provisioner
+    # This is an example of how to add lemmy to your traefik reverse proxy.
+    #labels:
+      #- "traefik.enable=true"
+      #- "traefik.http.routers.lemmy-proxy.rule=Host(`${DOMAIN}`)"
+    logging: *default-logging
+
+  lemmy:
+    image: dessalines/lemmy:${LEMMY_VERSION}
+    container_name: lemmy
+    restart: unless-stopped
+    user: "${LEMMY_UID}:${LEMMY_GID}"
+    environment:
+      - RUST_LOG=warn
+    volumes:
+      - lemmy_config:/config
+    networks:
+      - local
+    depends_on:
+      - postgres
+      - lemmy-volume-provisioner
+    logging: *default-logging
+
+  lemmy-ui:
+    image: dessalines/lemmy-ui:${LEMMY_UI_VERSION}
+    container_name: lemmy-ui
+    restart: unless-stopped
+    init: true
+    user: "${LEMMY_UI_UID}:${LEMMY_UI_GID}"
+    environment:
+      - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy:8536
+      - LEMMY_UI_LEMMY_EXTERNAL_HOST=${DOMAIN}
+      - LEMMY_UI_HTTPS=true
+    networks:
+      - local
+    depends_on:
+      - lemmy
+    logging: *default-logging
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: lemmy-db
+    restart: unless-stopped
+    user: "${POSTGRES_UID}:${POSTGRES_GID}"
+    env_file: postgres.env.secrets
+    environment:
+      - POSTGRES_USER=lemmy
+      - POSTGRES_DB=lemmy
+    volumes:
+      - database:/var/lib/postgresql/data
+    networks:
+      - local
+    ports:
+      - "5432:5432"
+    depends_on:
+      - lemmy-postgres-volume-provisioner
+    logging: *default-logging
+
+  lemmy-postgres-volume-provisioner:
+    image: hasnat/volumes-provisioner
+    container_name: lemmy-postgres-volume-provisioner
+    restart: "no"
+    volumes:
+      - database:/var/lib/postgresql/data
+    environment:
+      PROVISION_DIRECTORIES: "${POSTGRES_UID}:${POSTGRES_GID}:0700:/var/lib/postgresql/data"
+    network_mode: none
+
+  lemmy-volume-provisioner:
+    image: hasnat/volumes-provisioner
+    container_name: lemmy-volume-provisioner
+    restart: "no"
+    volumes:
+      - lemmy_config:/config
+    environment:
+      PROVISION_DIRECTORIES: "${LEMMY_UID}:${LEMMY_GID}:0700:/config"
+    network_mode: none
+
+  lemmy-proxy-volume-provisioner:
+    image: hasnat/volumes-provisioner
+    container_name: lemmy-proxy-volume-provisioner
+    restart: "no"
+    volumes:
+      - proxy_config:/config
+    environment:
+      PROVISION_DIRECTORIES: "101:101:0700:/config"
+    network_mode: none
+
+volumes:
+  database:
+  proxy_config:
+  lemmy_config:
+
+networks:
+  local:
+  reverse_proxy:
+    name: ${REVERSE_PROXY_NETWORK}
+    external: true
+

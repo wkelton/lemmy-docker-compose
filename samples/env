@@ -1,0 +1,17 @@
+# Your domain for lemmy
+DOMAIN=your-lemmy.tld
+
+# Name of your reverse proxy docker network (external to this docker-compose.yml)
+REVERSE_PROXY_NETWORK=webproxy
+
+# User/Group IDs to run containers as
+POSTGRES_UID=1234
+POSTGRES_GID=1234
+LEMMY_UID=1235
+LEMMY_GID=1235
+LEMMY_UI_UID=1236
+LEMMY_UI_GID=1236
+
+# Lemmy docker image versions
+LEMMY_VERSION=0.18.3
+LEMMY_UI_VERSION=0.18.3
