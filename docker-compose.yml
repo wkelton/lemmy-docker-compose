@@ -77,6 +77,32 @@ services:
       - lemmy-postgres-volume-provisioner
     logging: *default-logging
 
+  pictrs:
+    image: asonix/pictrs:${PICTRS_VERSION}
+    container_name: lemmy-pictrs
+    restart: always
+    user: "991:991"
+    env_file: pictrs.env.secrets
+    environment:
+      - RUST_LOG=warn
+      - RUST_BACKTRACE=full
+      - PICTRS__MEDIA__VIDEO_CODEC=vp9
+      - PICTRS__MEDIA__GIF__MAX_WIDTH=256
+      - PICTRS__MEDIA__GIF__MAX_HEIGHT=256
+      - PICTRS__MEDIA__GIF__MAX_AREA=65536
+      - PICTRS__MEDIA__GIF__MAX_FRAME_COUNT=400
+    volumes:
+      - pictrs_data:/mnt
+    networks:
+      - local
+    depends_on:
+      - lemmy-pictrs-volume-provisioner
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+
   lemmy-postgres-volume-provisioner:
     image: hasnat/volumes-provisioner
     container_name: lemmy-postgres-volume-provisioner
@@ -107,10 +133,21 @@ services:
       PROVISION_DIRECTORIES: "101:101:0700:/config"
     network_mode: none
 
+  lemmy-pictrs-volume-provisioner:
+    image: hasnat/volumes-provisioner
+    container_name: lemmy-pictrs-volume-provisioner
+    restart: "no"
+    volumes:
+      - pictrs_data:/mnt
+    environment:
+      PROVISION_DIRECTORIES: "991:991:0700:/mnt"
+    network_mode: none
+
 volumes:
   database:
   proxy_config:
   lemmy_config:
+  pictrs_data:
 
 networks:
   local:

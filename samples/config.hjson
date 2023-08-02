@@ -7,6 +7,10 @@
     password: "<postgres-password>"
   }
   hostname: "<domain>"
+  pictrs: {
+    url: "http://pictrs:8080/"
+    api_key: "<pictrs-password>"
+  }
   #email: {
   #  smtp_server: "postfix:25"
   #  smtp_from_address: "noreply@{{ domain }}"

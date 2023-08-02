@@ -1,1 +1,5 @@
 .env
+pictrs.env.secrets
+postgre.env.secrets
+config/config.hjson
+config/postgresql.conf
